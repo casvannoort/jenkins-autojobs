@@ -87,25 +87,24 @@ def create_job(ref, template, config, ref_config):
 
     try:
         scm_el = job.xml.xpath('scm[@class="hudson.plugins.git.GitSCM"]')[0]
+        # get remote name
+        remote = scm_el.xpath('//hudson.plugins.git.UserRemoteConfig/name')
+        remote = remote[0].text if remote else 'origin'
+
+        # set branch
+        el = scm_el.xpath('//hudson.plugins.git.BranchSpec/name')[0]
+        # :todo: jenkins is being very caprecious about the branchspec
+        # el.text = '%s/%s' % (remote, shortref)  # :todo:
+        el.text = shortref
+
+        # set the branch that git plugin will locally checkout to
+        el = scm_el.xpath('//localBranch')
+        el = etree.SubElement(scm_el, 'localBranch') if not el else el[0]
+
+        el.text = shortref  # the original shortref (with '/')
     except IndexError:
         msg = 'Template job %s is not configured to use Git as an SCM'
-        raise RuntimeError(msg % template)  # :bug:
-
-    # get remote name
-    remote = scm_el.xpath('//hudson.plugins.git.UserRemoteConfig/name')
-    remote = remote[0].text if remote else 'origin'
-
-    # set branch
-    el = scm_el.xpath('//hudson.plugins.git.BranchSpec/name')[0]
-    # :todo: jenkins is being very caprecious about the branchspec
-    # el.text = '%s/%s' % (remote, shortref)  # :todo:
-    el.text = shortref
-
-    # set the branch that git plugin will locally checkout to
-    el = scm_el.xpath('//localBranch')
-    el = etree.SubElement(scm_el, 'localBranch') if not el else el[0]
-
-    el.text = shortref  # the original shortref (with '/')
+        # raise RuntimeError(msg % template)  # :bug:
 
     # set the state of the newly created job
     job.set_state(ref_config['enable'])
